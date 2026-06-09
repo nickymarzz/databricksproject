@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Databricks Project Analytics Dashboard</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i data-lucide="database" class="icon-glow"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>Databricks Pro</h1>
+                    <span>Analytics Engine</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="notebooks">
+                    <i data-lucide="book-open"></i>
+                    <span>Notebook Explorer</span>
+                </button>
+                <button class="nav-item" data-tab="sql-console">
+                    <i data-lucide="terminal"></i>
+                    <span>SQL Query Console</span>
+                </button>
+                <button class="nav-item" data-tab="text-analytics">
+                    <i data-lucide="file-text"></i>
+                    <span>NLP & Text Analytics</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="db-status">
+                    <span class="status-indicator online"></span>
+                    <span class="status-text">SQLite Engine Active</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top bar -->
+            <header class="top-bar">
+                <div class="page-title">
+                    <h2 id="current-tab-title">Dashboard Overview</h2>
+                    <p id="current-tab-subtitle">Welcome to your Databricks analytical workspace</p>
+                </div>
+                <div class="top-actions">
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle Light/Dark Mode">
+                        <i data-lucide="sun" class="sun-icon"></i>
+                        <i data-lucide="moon" class="moon-icon hidden"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dynamic Tab Content Views -->
+            <div class="tab-viewport">
+                
+                <!-- TAB: DASHBOARD -->
+                <section id="tab-dashboard" class="tab-pane active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon bg-violet">
+                                <i data-lucide="notebook"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Jupyter Notebooks</h3>
+                                <span class="stat-value" id="count-notebooks">5 Files</span>
+                                <p>SQL, NLP, and Spark workflows</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon bg-indigo">
+                                <i data-lucide="table-2"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Active SQL Tables</h3>
+                                <span class="stat-value" id="count-tables">5 Tables</span>
+                                <p>Loaded into memory database</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon bg-cyan">
+                                <i data-lucide="hard-drive"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Data Size</h3>
+                                <span class="stat-value" id="count-datasize">45.6 MB</span>
+                                <p>Loaded CSV & text datasets</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-details">
+                        <!-- Data Files Manager -->
+                        <div class="card files-card">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <i data-lucide="files"></i>
+                                    <h4>Project Datasets</h4>
+                                </div>
+                                <span class="badge badge-success">Automounted</span>
+                            </div>
+                            <div class="card-body">
+                                <table class="table" id="table-files-metadata">
+                                    <thead>
+                                        <tr>
+                                            <th>Dataset Name</th>
+                                            <th>File Size</th>
+                                            <th>Record Count</th>
+                                            <th>SQL Schema Info</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="files-list-body">
+                                        <!-- Dynamically generated files info -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Spark Notebooks List Card -->
+                        <div class="card notebooks-summary-card">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <i data-lucide="book-open"></i>
+                                    <h4>Notebooks Summary</h4>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="notebooks-list" id="dashboard-notebooks-list">
+                                    <!-- Dynamic list of notebooks -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: NOTEBOOK EXPLORER -->
+                <section id="tab-notebooks" class="tab-pane">
+                    <div class="notebook-selector-bar">
+                        <label for="notebook-select">Select Notebook:</label>
+                        <div class="custom-select-wrapper">
+                            <select id="notebook-select">
+                                <option value="" disabled selected>Choose notebook...</option>
+                                <!-- Dynamically populated option tags -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="notebook-viewer-container" class="notebook-viewer">
+                        <div class="empty-state">
+                            <i data-lucide="book-open" class="empty-icon"></i>
+                            <h4>No Notebook Selected</h4>
+                            <p>Select a notebook from the dropdown above to inspect and execute its cells.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: SQL QUERY CONSOLE -->
+                <section id="tab-sql-console" class="tab-pane">
+                    <div class="sql-workspace">
+                        <div class="sql-sidebar">
+                            <div class="card schema-card">
+                                <div class="card-header">
+                                    <div class="card-header-title">
+                                        <i data-lucide="database"></i>
+                                        <h4>Database Schema</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body scrollable-y" id="schema-explorer">
+                                    <!-- Dynamic schema schema list -->
+                                    <div class="schema-item">
+                                        <div class="schema-table-name">
+                                            <i data-lucide="chevron-right"></i>
+                                            <span>orders (retail_orders)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Preset Queries -->
+                            <div class="card presets-card">
+                                <div class="card-header">
+                                    <div class="card-header-title">
+                                        <i data-lucide="bookmark"></i>
+                                        <h4>Sample Notebook Queries</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body scrollable-y" id="preset-queries-list">
+                                    <!-- Dynamic list of preset queries -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sql-main">
+                            <div class="card sql-editor-card">
+                                <div class="card-header">
+                                    <div class="card-header-title">
+                                        <i data-lucide="edit-3"></i>
+                                        <h4>Query Editor</h4>
+                                    </div>
+                                    <div class="editor-actions">
+                                        <button class="btn btn-primary btn-sm" id="btn-run-sql">
+                                            <i data-lucide="play"></i>
+                                            <span>Execute Query</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="editor-wrapper">
+                                        <textarea id="sql-editor" placeholder="SELECT * FROM orders LIMIT 10;"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Execution Results -->
+                            <div class="card sql-results-card">
+                                <div class="card-header">
+                                    <div class="card-header-title">
+                                        <i data-lucide="table"></i>
+                                        <h4>Execution Results</h4>
+                                    </div>
+                                    <div class="results-actions">
+                                        <span class="query-stats" id="query-stats-text">Ready</span>
+                                        <button class="btn btn-outline btn-sm hidden" id="btn-export-csv">
+                                            <i data-lucide="download"></i>
+                                            <span>CSV</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="results-tabs">
+                                        <button class="results-tab active" data-view="table">Table View</button>
+                                        <button class="results-tab" data-view="chart" id="results-tab-chart-btn">Visualization</button>
+                                    </div>
+                                    
+                                    <div class="results-viewport">
+                                        <!-- Table View Pane -->
+                                        <div class="results-pane active" id="results-pane-table">
+                                            <div class="table-wrapper scrollable-x scrollable-y" id="sql-table-container">
+                                                <div class="empty-state">
+                                                    <i data-lucide="table" class="empty-icon"></i>
+                                                    <h4>No Data Run Yet</h4>
+                                                    <p>Run a query in the editor to see your execution results in a data grid.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Chart View Pane -->
+                                        <div class="results-pane" id="results-pane-chart">
+                                            <div class="chart-setup-bar">
+                                                <div class="control-group">
+                                                    <label for="chart-type">Type:</label>
+                                                    <select id="chart-type">
+                                                        <option value="bar">Bar Chart</option>
+                                                        <option value="line">Line Chart</option>
+                                                        <option value="pie">Pie Chart</option>
+                                                        <option value="doughnut">Doughnut Chart</option>
+                                                    </select>
+                                                </div>
+                                                <div class="control-group">
+                                                    <label for="chart-label-col">Labels (X):</label>
+                                                    <select id="chart-label-col">
+                                                        <!-- Populate with query columns -->
+                                                    </select>
+                                                </div>
+                                                <div class="control-group">
+                                                    <label for="chart-data-col">Values (Y):</label>
+                                                    <select id="chart-data-col">
+                                                        <!-- Populate with query columns -->
+                                                    </select>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-render-chart">Update Chart</button>
+                                            </div>
+                                            <div class="chart-canvas-container">
+                                                <canvas id="sql-chart-canvas"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: TEXT ANALYTICS -->
+                <section id="tab-text-analytics" class="tab-pane">
+                    <div class="nlp-controls card">
+                        <div class="card-body flex-row-between">
+                            <div class="control-group flex-row">
+                                <label for="nlp-file-select">Analyze Text Source:</label>
+                                <select id="nlp-file-select">
+                                    <option value="sejong">Sejong TXT (sejong.txt)</option>
+                                    <option value="sejong_wikipedia">Sejong Wikipedia (sejong_university_wikipedia.txt)</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" id="btn-run-nlp">
+                                <i data-lucide="play-circle"></i>
+                                <span>Run NLP Processing</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="nlp-dashboard">
+                        <!-- Stats panel -->
+                        <div class="nlp-stats">
+                            <div class="card nlp-stat-box">
+                                <span class="nlp-stat-title">Characters</span>
+                                <span class="nlp-stat-num" id="nlp-stat-chars">-</span>
+                            </div>
+                            <div class="card nlp-stat-box">
+                                <span class="nlp-stat-title">Words Count</span>
+                                <span class="nlp-stat-num" id="nlp-stat-words">-</span>
+                            </div>
+                            <div class="card nlp-stat-box">
+                                <span class="nlp-stat-title">Sentences</span>
+                                <span class="nlp-stat-num" id="nlp-stat-sentences">-</span>
+                            </div>
+                            <div class="card nlp-stat-box">
+                                <span class="nlp-stat-title">Contains "Sejong"</span>
+                                <span class="nlp-stat-num" id="nlp-stat-sejong">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Visual charts -->
+                        <div class="nlp-charts-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Top Filtered Word Frequencies (Stopwords Removed)</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="nlp-chart-container">
+                                        <canvas id="nlp-word-chart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Top Bigram Phrases (2-Word Combos)</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="nlp-chart-container">
+                                        <canvas id="nlp-bigram-chart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nlp-details-grid">
+                            <!-- Words Table -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Filtered Word Frequencies</h4>
+                                </div>
+                                <div class="card-body scrollable-y max-h-400">
+                                    <table class="table text-left" id="table-nlp-words">
+                                        <thead>
+                                            <tr>
+                                                <th>Rank</th>
+                                                <th>Word</th>
+                                                <th>Frequency Count</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="table-nlp-words-body">
+                                            <tr><td colspan="3" class="text-center">Run NLP to display data</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Sentence Explorer -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Sentences Explorer (First 10 Lines)</h4>
+                                </div>
+                                <div class="card-body scrollable-y max-h-400">
+                                    <div class="sentence-list" id="nlp-sentences-list">
+                                        <p class="text-center font-muted">Run NLP to display data</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Init script -->
+    <script src="app.js"></script>
+    <script>
+        // Start Lucide Icon rendering
+        lucide.createIcons();
+    </script>
+</body>
+</html>
