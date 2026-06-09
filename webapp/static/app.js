@@ -280,23 +280,50 @@ function renderNotebookCells() {
             outputsDiv.className = "cell-outputs";
             outputsDiv.innerHTML = `<span class="output-label">Saved Output</span>`;
             
-            let outputContent = "";
+            let hasContent = false;
+            
             cell.outputs.forEach(out => {
-                if (out.text) {
-                    outputContent += out.text.join("");
-                } else if (out.data && out.data["text/plain"]) {
-                    outputContent += out.data["text/plain"].join("");
-                } else if (out.data && out.data["text/html"]) {
-                    // Try strip HTML tag or display text
-                    outputContent += out.data["text/html"].join("").replace(/<[^>]*>/g, '');
+                // 1. Check for image display (e.g. matplotlib figures)
+                if (out.data && out.data["image/png"]) {
+                    const img = document.createElement("img");
+                    const imgData = out.data["image/png"].join ? out.data["image/png"].join("") : out.data["image/png"];
+                    img.src = `data:image/png;base64,${imgData.trim()}`;
+                    img.className = "output-image";
+                    img.style.maxWidth = "100%";
+                    img.style.borderRadius = "8px";
+                    img.style.marginTop = "10px";
+                    img.style.display = "block";
+                    outputsDiv.appendChild(img);
+                    hasContent = true;
+                }
+                // 2. Check for rich HTML (e.g. pandas dataframes, tables)
+                else if (out.data && out.data["text/html"]) {
+                    const htmlDiv = document.createElement("div");
+                    htmlDiv.className = "output-html scrollable-x";
+                    htmlDiv.style.marginTop = "10px";
+                    htmlDiv.innerHTML = out.data["text/html"].join ? out.data["text/html"].join("") : out.data["text/html"];
+                    outputsDiv.appendChild(htmlDiv);
+                    hasContent = true;
+                }
+                // 3. Check for standard text stream
+                else if (out.text) {
+                    const textPre = document.createElement("pre");
+                    textPre.className = "cell-output-text";
+                    textPre.textContent = out.text.join ? out.text.join("") : out.text;
+                    outputsDiv.appendChild(textPre);
+                    hasContent = true;
+                }
+                // 4. Check for text/plain representation
+                else if (out.data && out.data["text/plain"]) {
+                    const textPre = document.createElement("pre");
+                    textPre.className = "cell-output-text";
+                    textPre.textContent = out.data["text/plain"].join ? out.data["text/plain"].join("") : out.data["text/plain"];
+                    outputsDiv.appendChild(textPre);
+                    hasContent = true;
                 }
             });
             
-            if (outputContent.trim()) {
-                const textPre = document.createElement("pre");
-                textPre.className = "cell-output-text";
-                textPre.textContent = outputContent;
-                outputsDiv.appendChild(textPre);
+            if (hasContent) {
                 card.appendChild(outputsDiv);
             }
         }

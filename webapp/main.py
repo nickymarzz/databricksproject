@@ -261,7 +261,7 @@ def get_notebooks():
                     "source": source,
                     "is_query": is_query,
                     "sql_content": sql_content,
-                    "outputs": cell.get('outputs', [])[:3] # Limit outputs sent
+                    "outputs": cell.get('outputs', [])
                 })
             
             notebooks.append({
