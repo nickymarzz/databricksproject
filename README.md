@@ -33,7 +33,8 @@ databricksproject/
 
 A premium, glassmorphic dark-themed analytical dashboard is included to browse, execute, and visualize the notebook queries and text statistics locally without requiring a full PySpark cluster configuration.
 
-### Dashboard Key Features:
+### Dashboard Key Features
+
 1. **Interactive Notebook Viewer**: Inspect notebook cells step-by-step with code formatting and inline execution buttons.
 2. **SQL Query Console**: Live terminal to run queries on loaded tables (`orders`, `retail`, `customers`, `products`), view execution times, view table schema trees, download query outputs as CSV, and render customizable charts (Bar, Line, Pie, Doughnut).
 3. **NLP Dashboard**: Word frequency counters, bigram phrase visualizers, character and sentence statistics, and sentence line explorers.
@@ -44,18 +45,24 @@ A premium, glassmorphic dark-themed analytical dashboard is included to browse, 
 ## 💻 Quick Start (Local Web App)
 
 ### Prerequisites
+
 - Python 3.8+ installed on your system.
 
 ### One-Click Launch (Windows)
+
 Go into the `webapp` folder and run the Windows launcher batch file:
+
 ```cmd
 cd webapp
 run.bat
 ```
+
 This script will verify your Python environment, install required packages (`fastapi`, `uvicorn`, `pandas`), start the server process on `http://127.0.0.1:8000`, and open the dashboard in your default browser.
 
 ### Manual Launch
+
 To start the FastAPI webapp manually from your terminal:
+
 ```bash
 # Install dependencies
 pip install fastapi uvicorn pandas
@@ -64,4 +71,5 @@ pip install fastapi uvicorn pandas
 cd webapp
 python -m uvicorn main:app --port 8000
 ```
+
 Then visit `http://127.0.0.1:8000` in your browser.
