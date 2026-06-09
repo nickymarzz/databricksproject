@@ -4,7 +4,7 @@ Thank you for interest in contributing to this project! To make the process clea
 
 ## 🤝 Code of Conduct
 
-All contributors are expected to uphold the [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior to **<nickymarzz@gmail.com>**.
+All contributors are expected to uphold the [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior to **<[EMAIL_ADDRESS]>**.
 
 ## 🐛 How to Contribute
 
