@@ -4,17 +4,6 @@ A comprehensive data analysis repository demonstrating clean PySpark SQL executi
 
 ---
 
-## 🎯 Project Goals & Description
-
-This repository serves as a centralized sandbox for database queries, big data processing, and natural language processing (NLP) pipelines. 
-
-### Core Objectives:
-*   **Data Analytics & Transformation**: Process transactional datasets (like Online Retail logs) using PySpark and Spark SQL to extract key business insights (monthly revenue, customer segmentations, top-performing product categories).
-*   **Text Processing & NLP**: Build tokenization pipelines to clean raw text files, filter stopwords, analyze sentence structures, and extract bigram counts from historical articles.
-*   **Interactive Simulation**: Provide a standalone FastAPI Web Application that compiles and runs these queries locally, offering interactive charts, a live SQL console, and NLP visualizations without launching a cloud Databricks cluster.
-
----
-
 ## 📁 Repository Structure
 
 The project has been organized into a professional directory structure:
