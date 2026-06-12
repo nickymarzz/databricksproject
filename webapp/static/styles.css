@@ -721,7 +721,7 @@ body {
     display: grid;
     grid-template-columns: 300px 1fr;
     gap: 24px;
-    height: calc(100vh - 176px);
+    height: calc(100vh - 150px);
 }
 
 .sql-sidebar {
@@ -846,7 +846,8 @@ body {
 
 /* SQL Editor */
 .sql-editor-card {
-    min-height: 200px;
+    min-height: 160px;
+    flex-shrink: 0;
 }
 
 .editor-wrapper {
@@ -868,8 +869,8 @@ body {
 
 /* Results Display */
 .sql-results-card {
-    flex: 1;
-    min-height: 350px;
+    min-height: 500px;
+    height: auto;
     display: flex;
     flex-direction: column;
 }
@@ -885,6 +886,7 @@ body {
     gap: 8px;
     border-bottom: 1px solid var(--border-color);
     padding: 0 24px;
+    flex-shrink: 0;
 }
 
 .results-tab {
@@ -910,26 +912,39 @@ body {
 }
 
 .results-viewport {
-    flex: 1;
     position: relative;
-    height: 200px; /* Overwritten by flex grow */
+    min-height: 400px;
+    height: auto;
+    overflow: visible;
 }
 
 .results-pane {
     display: none;
-    height: 100%;
     padding: 24px;
 }
 
 .results-pane.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 340px);
+    min-height: 480px;
+}
+
+#results-pane-table {
+    overflow: hidden;
+}
+
+#results-pane-chart {
+    overflow-y: auto;
 }
 
 .table-wrapper {
+    flex: 1;
     height: 100%;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background-color: rgba(0, 0, 0, 0.1);
+    overflow: auto;
 }
 
 .results-table {
@@ -981,11 +996,16 @@ body {
 }
 
 .chart-canvas-container {
-    height: calc(100% - 60px);
+    height: 520px;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    padding: 10px 0;
+}
+
+.chart-canvas-container.pie-doughnut-mode {
+    max-width: 580px;
+    height: 450px;
+    margin: 0 auto;
 }
 
 /* NLP Text Analytics Layout */

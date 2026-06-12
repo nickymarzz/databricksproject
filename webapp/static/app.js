@@ -950,10 +950,20 @@ document.getElementById("btn-render-chart").addEventListener("click", () => {
 function renderSQLChart() {
     if (!currentQueryResult || currentQueryResult.rows.length === 0) return;
     
-    const ctx = document.getElementById("sql-chart-canvas").getContext("2d");
+    const canvas = document.getElementById("sql-chart-canvas");
+    const ctx = canvas.getContext("2d");
     const labelCol = document.getElementById("chart-label-col").value;
     const dataCol = document.getElementById("chart-data-col").value;
     const chartType = document.getElementById("chart-type").value;
+    
+    const container = canvas.parentNode;
+    if (container) {
+        if (chartType === 'pie' || chartType === 'doughnut') {
+            container.classList.add("pie-doughnut-mode");
+        } else {
+            container.classList.remove("pie-doughnut-mode");
+        }
+    }
     
     const labelIdx = currentQueryResult.columns.indexOf(labelCol);
     const dataIdx = currentQueryResult.columns.indexOf(dataCol);
