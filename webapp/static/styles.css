@@ -612,6 +612,42 @@ body {
     overflow-y: auto;
 }
 
+/* Saved HTML Tables Styling in Cell Outputs */
+.cell-outputs table,
+.cell-outputs table thead,
+.cell-outputs table tr {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+.cell-outputs table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary) !important;
+}
+
+.cell-outputs table th {
+    background-color: #1e293b !important;
+    color: var(--text-primary) !important;
+    font-weight: 600;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color) !important;
+    text-align: left;
+}
+
+.cell-outputs table td {
+    background-color: rgba(255, 255, 255, 0.01) !important;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-secondary) !important;
+}
+
+.cell-outputs table tr:nth-child(even) td {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
 /* Live runner elements */
 .live-runner-action {
     display: flex;
@@ -1047,6 +1083,185 @@ body {
     color: var(--color-primary);
     display: block;
     margin-bottom: 4px;
+}
+
+/* Cell Annotation Styles */
+.cell-annotation {
+    margin-top: 0;
+    animation: fade-in 0.3s ease;
+}
+
+.annotation-content {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 18px;
+    border-radius: 0 0 12px 12px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border-top: 1px dashed var(--border-color);
+}
+
+.annotation-content strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+}
+
+.annotation-content p {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.annotation-content code {
+    background: rgba(139, 92, 246, 0.12);
+    color: var(--color-primary);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+.annotation-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* Annotation color variants */
+.annotation-save {
+    background: rgba(16, 185, 129, 0.06);
+    border-left: 3px solid var(--color-success);
+}
+
+.annotation-databricks {
+    background: rgba(99, 102, 241, 0.06);
+    border-left: 3px solid var(--color-secondary);
+}
+
+.annotation-setup {
+    background: rgba(139, 92, 246, 0.06);
+    border-left: 3px solid var(--color-primary);
+}
+
+.annotation-data {
+    background: rgba(6, 182, 212, 0.06);
+    border-left: 3px solid var(--color-cyan);
+}
+
+.annotation-transform {
+    background: rgba(245, 158, 11, 0.06);
+    border-left: 3px solid #f59e0b;
+}
+
+.annotation-info {
+    background: rgba(148, 163, 184, 0.06);
+    border-left: 3px solid var(--text-muted);
+}
+
+/* Light theme adjustments */
+body.light-theme .annotation-save {
+    background: rgba(16, 185, 129, 0.08);
+}
+body.light-theme .annotation-databricks {
+    background: rgba(99, 102, 241, 0.08);
+}
+body.light-theme .annotation-setup {
+    background: rgba(139, 92, 246, 0.08);
+}
+body.light-theme .annotation-data {
+    background: rgba(6, 182, 212, 0.08);
+}
+body.light-theme .annotation-transform {
+    background: rgba(245, 158, 11, 0.08);
+}
+body.light-theme .annotation-info {
+    background: rgba(100, 116, 139, 0.08);
+}
+body.light-theme .annotation-content code {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+/* Interactive annotation variant (has SQL preview + Run button) */
+.annotation-interactive {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    border-top: none;
+}
+
+.annotation-interactive .annotation-body {
+    padding: 14px 18px 14px 18px;
+    width: 100%;
+}
+
+.annotation-interactive > .annotation-icon {
+    display: none; /* Icon is implied by color; hide for cleaner layout */
+}
+
+.annotation-body > strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+}
+
+.annotation-body > strong::before {
+    content: "📊";
+    font-size: 1rem;
+}
+
+.annotation-body > p {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+/* SQL preview block inside annotation */
+.annotation-sql-preview {
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: auto;
+    max-height: 180px;
+    margin-bottom: 10px;
+}
+
+.annotation-sql-preview pre {
+    margin: 0;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.annotation-sql-preview code {
+    background: transparent !important;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.78rem;
+}
+
+/* Action button row inside annotation */
+.annotation-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* NLP controls button group */
+.nlp-control-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 /* Animations */

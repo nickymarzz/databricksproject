@@ -405,6 +405,58 @@ def text_analysis(file: str = Query(..., description="sejong or sejong_wikipedia
         "wordLengthDistribution": lengths_chart
     }
 
+@app.get("/api/export_nlp_csv")
+def export_nlp_csv(file: str = Query(..., description="sejong or sejong_wikipedia")):
+    """
+    Export word frequency results as a downloadable CSV file.
+    This replicates what Cell 11 does in both Text_Processing.ipynb and test2.ipynb:
+      sorted_word_count.write.mode("overwrite").format("csv").save(output_volume_path)
+    """
+    import re
+    import io
+    from collections import Counter
+    from fastapi.responses import StreamingResponse
+
+    if file == "sejong":
+        file_path = os.path.join(DATA_DIR, "sejong.txt")
+        csv_filename = "textProcessing_results.csv"
+    elif file == "sejong_wikipedia":
+        file_path = os.path.join(DATA_DIR, "sejong_university_wikipedia.txt")
+        csv_filename = "sejong_university_wikipedia_results.csv"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid file requested")
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Text file not found")
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    # Same pipeline as text_analysis endpoint
+    clean_text = re.sub(r"[^\w\s]", " ", text.lower())
+    words = [w for w in clean_text.split() if w.strip()]
+
+    STOPWORDS = set("""a an and are as at be been being but by for from has
+    have had he her his i in is it its of on or our she such that the their
+    them then there these they this to was will with you list update category
+    from table select order group by limit where into from""".split())
+
+    filtered_words = [w for w in words if w not in STOPWORDS and len(w) > 1]
+    word_freq = Counter(filtered_words).most_common()
+
+    # Build CSV content — same schema Spark produces: word, count
+    output = io.StringIO()
+    output.write("word,count\n")
+    for word, count in word_freq:
+        output.write(f"{word},{count}\n")
+    output.seek(0)
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={csv_filename}"}
+    )
+
 @app.get("/api/files")
 def get_files_metadata():
     files = ["retail_orders.csv", "Online_Retail-1.csv", "sejong.txt", "sejong_university_wikipedia.txt"]

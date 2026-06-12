@@ -212,6 +212,178 @@ notebookSelect.addEventListener("change", () => {
     renderNotebookCells();
 });
 
+// Lookup map: sparksql.ipynb cell ID -> equivalent SQL query that replicates .display() output
+const SPARKSQL_DISPLAY_QUERIES = {
+    3: {
+        title: "High-Value Transactions (TotalPrice > 50 & Quantity > 10)",
+        sql: `SELECT\n  InvoiceNo,\n  StockCode,\n  Description,\n  Quantity,\n  UnitPrice,\n  ROUND(TotalPrice, 2) AS TotalPrice,\n  CustomerID,\n  Country\nFROM retail\nWHERE TotalPrice > 50\n  AND Quantity > 10\nORDER BY TotalPrice DESC\nLIMIT 50;`
+    },
+    4: {
+        title: "Product Transaction Metrics (GroupBy StockCode)",
+        sql: `SELECT\n  StockCode,\n  Description,\n  SUM(Quantity)             AS total_quantity,\n  ROUND(AVG(TotalPrice), 2) AS avg_price,\n  COUNT(InvoiceNo)          AS transaction_count\nFROM retail\nGROUP BY StockCode, Description\nORDER BY total_quantity DESC\nLIMIT 20;`
+    },
+    5: {
+        title: "Distinct Customer-Country Mappings",
+        sql: `SELECT DISTINCT\n  CustomerID,\n  Country\nFROM retail\nORDER BY CustomerID\nLIMIT 50;`
+    },
+    6: {
+        title: "Customer Transactions (Inner Join)",
+        sql: `SELECT\n  CustomerID,\n  InvoiceNo,\n  StockCode,\n  Description,\n  Quantity,\n  ROUND(UnitPrice, 2)  AS UnitPrice,\n  ROUND(TotalPrice, 2) AS TotalPrice,\n  Country\nFROM retail\nORDER BY CustomerID\nLIMIT 50;`
+    },
+    7: {
+        title: "Spending Patterns Per Customer (Aggregated)",
+        sql: `SELECT\n  CustomerID,\n  Country,\n  ROUND(SUM(TotalPrice), 2) AS total_spent,\n  COUNT(InvoiceNo)          AS purchase_count\nFROM retail\nGROUP BY CustomerID, Country\nORDER BY total_spent DESC\nLIMIT 20;`
+    }
+};
+
+// Generate contextual annotations for cells with no saved output
+function generateCellAnnotation(source, cellId, notebookName) {
+    const src = source.trim();
+    const srcLower = src.toLowerCase();
+    
+    // Save/Write operations (CSV, Delta, Parquet)
+    if (srcLower.includes('.write.') || srcLower.includes('.save(') || srcLower.includes('saveastable')) {
+        const pathMatch = src.match(/["']([^"']+)["']/);
+        const destPath = pathMatch ? pathMatch[1] : "cloud storage";
+        return `
+            <div class="annotation-content annotation-save">
+                <div class="annotation-icon">💾</div>
+                <div>
+                    <strong>Save / Write Operation</strong>
+                    <p>This cell writes processed data to <code>${destPath}</code>. It executes as a side-effect (file I/O) on the Databricks cluster and produces no visual output. The results are persisted to the specified Unity Catalog Volume path.</p>
+                </div>
+            </div>`;
+    }
+    
+    // .display() calls (Databricks-specific) — check for known SQL equivalent in sparksql.ipynb
+    if (srcLower.includes('.display(')) {
+        const commentMatch = src.match(/^#\s*(.+)/m);
+        const varMatch = src.match(/(\w+)\.display\(/);
+        const displayVar = varMatch ? varMatch[1] : "DataFrame";
+        const description = commentMatch ? commentMatch[1] : `Displays ${displayVar} results`;
+
+        // Check if we have a pre-built SQL equivalent for this specific cell
+        const isSparksql = notebookName && notebookName.toLowerCase().includes('sparksql.ipynb');
+        const knownQuery = isSparksql ? SPARKSQL_DISPLAY_QUERIES[cellId] : null;
+
+        if (knownQuery) {
+            // Interactive annotation with SQL query + run button
+            // Use a unique ID so the button can reference its query block
+            const escapedSql = knownQuery.sql.replace(/`/g, '\\`');
+            return `
+                <div class="annotation-content annotation-databricks annotation-interactive">
+                    <div class="annotation-icon">📊</div>
+                    <div class="annotation-body">
+                        <strong>${knownQuery.title}</strong>
+                        <p>This cell used <code>.display()</code> (Databricks-only). The equivalent SQL query is ready to run locally:</p>
+                        <div class="annotation-sql-preview">
+                            <pre><code class="language-sql">${knownQuery.sql.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>
+                        </div>
+                        <div class="annotation-actions">
+                            <button class="btn btn-primary btn-sm annotation-run-btn"
+                                data-sql="${knownQuery.sql.replace(/"/g, '&quot;')}"
+                                data-notebook="sparksql.ipynb">
+                                <i data-lucide="play"></i>
+                                <span>Run in SQL Console</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        // Generic .display() annotation (no pre-built query)
+        return `
+            <div class="annotation-content annotation-databricks">
+                <div class="annotation-icon">📊</div>
+                <div>
+                    <strong>${description}</strong>
+                    <p>This cell uses <code>.display()</code> — a Databricks-exclusive rendering method. The output requires the Databricks runtime and cannot be captured as static notebook metadata. Use the <strong>SQL Query Console</strong> tab to run equivalent queries locally.</p>
+                </div>
+            </div>`;
+    }
+    
+    // createOrReplaceTempView (registering SQL views)
+    if (srcLower.includes('createorreplacetempview')) {
+        const viewMatch = src.match(/createOrReplaceTempView\(["'](\w+)["']\)/i);
+        const viewName = viewMatch ? viewMatch[1] : "temp_view";
+        return `
+            <div class="annotation-content annotation-setup">
+                <div class="annotation-icon">🔗</div>
+                <div>
+                    <strong>Register Temporary SQL View: <code>${viewName}</code></strong>
+                    <p>This cell registers the DataFrame as a temporary SQL view named <code>${viewName}</code>, making it queryable via Spark SQL in subsequent cells. This is a metadata operation with no visual output.</p>
+                </div>
+            </div>`;
+    }
+    
+    // SparkSession initialization
+    if (srcLower.includes('sparksession') || (src === 'spark' && cellId === 0)) {
+        return `
+            <div class="annotation-content annotation-setup">
+                <div class="annotation-icon">⚡</div>
+                <div>
+                    <strong>Spark Session Initialization</strong>
+                    <p>This cell initializes or references the Apache Spark session. In Databricks, the <code>spark</code> variable is pre-configured and displays cluster connection info. No data output is generated.</p>
+                </div>
+            </div>`;
+    }
+    
+    // Data loading / reading files
+    if (srcLower.includes('spark.read.') || srcLower.includes('read.csv') || srcLower.includes('read.text')) {
+        const commentMatch = src.match(/^#\s*(.+)/m);
+        const description = commentMatch ? commentMatch[1] : "Data Loading";
+        return `
+            <div class="annotation-content annotation-data">
+                <div class="annotation-icon">📥</div>
+                <div>
+                    <strong>${description}</strong>
+                    <p>This cell reads data from cloud storage into a Spark DataFrame. Functions like <code>printSchema()</code> and <code>.show()</code> produce console output in Databricks but the output was not saved to the notebook metadata. The data is loaded and available for downstream transformations.</p>
+                </div>
+            </div>`;
+    }
+    
+    // Import statements
+    if (srcLower.startsWith('from ') || srcLower.startsWith('import ')) {
+        return `
+            <div class="annotation-content annotation-setup">
+                <div class="annotation-icon">📦</div>
+                <div>
+                    <strong>Library Imports</strong>
+                    <p>This cell imports required Python/PySpark libraries. Import statements execute silently with no visual output.</p>
+                </div>
+            </div>`;
+    }
+    
+    // DataFrame transformations (filter, groupBy, etc.) without display
+    if (srcLower.includes('.filter(') || srcLower.includes('.groupby(') || srcLower.includes('.agg(') || srcLower.includes('.join(') || srcLower.includes('.select(')) {
+        const commentMatch = src.match(/^#\s*(.+)/m);
+        const description = commentMatch ? commentMatch[1] : "DataFrame Transformation";
+        return `
+            <div class="annotation-content annotation-transform">
+                <div class="annotation-icon">🔄</div>
+                <div>
+                    <strong>${description}</strong>
+                    <p>This cell applies transformations (filter/group/join/aggregate) to a DataFrame. In Spark, transformations are <em>lazy</em> — they build an execution plan but don't compute results until an action (like <code>.display()</code> or <code>.show()</code>) is called. The output was rendered using Databricks' native display and is not embedded in the notebook file.</p>
+                </div>
+            </div>`;
+    }
+    
+    // Generic fallback for code cells with comments
+    const commentMatch = src.match(/^#\s*(.+)/m);
+    if (commentMatch) {
+        return `
+            <div class="annotation-content annotation-info">
+                <div class="annotation-icon">ℹ️</div>
+                <div>
+                    <strong>${commentMatch[1]}</strong>
+                    <p>This cell was executed on the Databricks cluster but produced no saved output in the notebook metadata.</p>
+                </div>
+            </div>`;
+    }
+    
+    return null;
+}
+
 function renderNotebookCells() {
     if (!activeNotebook) return;
     
@@ -283,8 +455,42 @@ function renderNotebookCells() {
             let hasContent = false;
             
             cell.outputs.forEach(out => {
-                // 1. Check for image display (e.g. matplotlib figures)
-                if (out.data && out.data["image/png"]) {
+                // 1. Check for Databricks structured subcommand data (e.g., table schema & rows)
+                if (out.data && out.data["application/vnd.databricks.v1.subcommand+json"]) {
+                    const dbData = out.data["application/vnd.databricks.v1.subcommand+json"];
+                    if (dbData.schema && dbData.data) {
+                        const table = document.createElement("table");
+                        table.className = "results-table";
+                        
+                        // Header
+                        const thead = document.createElement("thead");
+                        const trHead = document.createElement("tr");
+                        dbData.schema.forEach(col => {
+                            trHead.innerHTML += `<th>${col.name}</th>`;
+                        });
+                        thead.appendChild(trHead);
+                        table.appendChild(thead);
+                        
+                        // Body
+                        const tbody = document.createElement("tbody");
+                        dbData.data.forEach(row => {
+                            const tr = document.createElement("tr");
+                            row.forEach(cellVal => {
+                                tr.innerHTML += `<td>${cellVal === null ? 'NULL' : cellVal}</td>`;
+                            });
+                            tbody.appendChild(tr);
+                        });
+                        table.appendChild(tbody);
+                        
+                        const wrapper = document.createElement("div");
+                        wrapper.className = "scrollable-x";
+                        wrapper.appendChild(table);
+                        outputsDiv.appendChild(wrapper);
+                        hasContent = true;
+                    }
+                }
+                // 2. Check for image display (e.g. matplotlib figures)
+                else if (out.data && out.data["image/png"]) {
                     const img = document.createElement("img");
                     const imgData = out.data["image/png"].join ? out.data["image/png"].join("") : out.data["image/png"];
                     img.src = `data:image/png;base64,${imgData.trim()}`;
@@ -296,7 +502,7 @@ function renderNotebookCells() {
                     outputsDiv.appendChild(img);
                     hasContent = true;
                 }
-                // 2. Check for rich HTML (e.g. pandas dataframes, tables)
+                // 3. Check for rich HTML (e.g. pandas dataframes, tables)
                 else if (out.data && out.data["text/html"]) {
                     const htmlDiv = document.createElement("div");
                     htmlDiv.className = "output-html scrollable-x";
@@ -305,26 +511,85 @@ function renderNotebookCells() {
                     outputsDiv.appendChild(htmlDiv);
                     hasContent = true;
                 }
-                // 3. Check for standard text stream
+                // 4. Check for standard text stream
                 else if (out.text) {
-                    const textPre = document.createElement("pre");
-                    textPre.className = "cell-output-text";
-                    textPre.textContent = out.text.join ? out.text.join("") : out.text;
-                    outputsDiv.appendChild(textPre);
-                    hasContent = true;
+                    const textVal = out.text.join ? out.text.join("") : out.text;
+                    if (textVal.includes("Databricks visualization")) {
+                        const notice = document.createElement("div");
+                        notice.className = "databricks-viz-notice";
+                        notice.style.background = "var(--color-primary-glow)";
+                        notice.style.border = "1px solid var(--border-hover)";
+                        notice.style.borderRadius = "8px";
+                        notice.style.padding = "12px 16px";
+                        notice.style.marginTop = "10px";
+                        notice.style.fontSize = "0.85rem";
+                        notice.style.color = "var(--text-secondary)";
+                        notice.innerHTML = `
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="font-size: 1.1rem; line-height: 1;">💡</span>
+                                <div>
+                                    <strong style="color: var(--text-primary);">Databricks UI Chart Notice:</strong>
+                                    <p style="margin-top: 4px;">This chart is a proprietary Databricks display format. You can copy the SQL query and run it inside our <strong>SQL Query Console</strong> to generate and customize local interactive charts!</p>
+                                </div>
+                            </div>
+                        `;
+                        outputsDiv.appendChild(notice);
+                        hasContent = true;
+                    } else {
+                        const textPre = document.createElement("pre");
+                        textPre.className = "cell-output-text";
+                        textPre.textContent = textVal;
+                        outputsDiv.appendChild(textPre);
+                        hasContent = true;
+                    }
                 }
-                // 4. Check for text/plain representation
+                // 5. Check for text/plain representation
                 else if (out.data && out.data["text/plain"]) {
-                    const textPre = document.createElement("pre");
-                    textPre.className = "cell-output-text";
-                    textPre.textContent = out.data["text/plain"].join ? out.data["text/plain"].join("") : out.data["text/plain"];
-                    outputsDiv.appendChild(textPre);
-                    hasContent = true;
+                    const textVal = out.data["text/plain"].join ? out.data["text/plain"].join("") : out.data["text/plain"];
+                    if (textVal.includes("Databricks visualization")) {
+                        const notice = document.createElement("div");
+                        notice.className = "databricks-viz-notice";
+                        notice.style.background = "var(--color-primary-glow)";
+                        notice.style.border = "1px solid var(--border-hover)";
+                        notice.style.borderRadius = "8px";
+                        notice.style.padding = "12px 16px";
+                        notice.style.marginTop = "10px";
+                        notice.style.fontSize = "0.85rem";
+                        notice.style.color = "var(--text-secondary)";
+                        notice.innerHTML = `
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="font-size: 1.1rem; line-height: 1;">💡</span>
+                                <div>
+                                    <strong style="color: var(--text-primary);">Databricks UI Chart Notice:</strong>
+                                    <p style="margin-top: 4px;">This chart is a proprietary Databricks display format. You can copy the SQL query and run it inside our <strong>SQL Query Console</strong> to generate and customize local interactive charts!</p>
+                                </div>
+                            </div>
+                        `;
+                        outputsDiv.appendChild(notice);
+                        hasContent = true;
+                    } else {
+                        const textPre = document.createElement("pre");
+                        textPre.className = "cell-output-text";
+                        textPre.textContent = textVal;
+                        outputsDiv.appendChild(textPre);
+                        hasContent = true;
+                    }
                 }
             });
             
             if (hasContent) {
                 card.appendChild(outputsDiv);
+            }
+        }
+
+        // Context annotations for code cells with no saved output
+        if (cell.type === "code" && (!cell.outputs || cell.outputs.length === 0)) {
+            const annotation = generateCellAnnotation(cell.source, cell.id, activeNotebook.name);
+            if (annotation) {
+                const annotDiv = document.createElement("div");
+                annotDiv.className = "cell-annotation";
+                annotDiv.innerHTML = annotation;
+                card.appendChild(annotDiv);
             }
         }
         
@@ -333,6 +598,28 @@ function renderNotebookCells() {
 
     // Reinitialize icons in new DOM structure
     lucide.createIcons();
+
+    // Apply syntax highlighting to SQL previews inside annotations
+    viewerContainer.querySelectorAll(".annotation-sql-preview code").forEach(block => {
+        hljs.highlightElement(block);
+    });
+
+    // Wire up "Run in SQL Console" buttons via event delegation
+    viewerContainer.querySelectorAll(".annotation-run-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            // Decode the SQL stored in the data attribute
+            const sql = btn.getAttribute("data-sql")
+                .replace(/&quot;/g, '"')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>');
+            const notebook = btn.getAttribute("data-notebook") || "";
+            // Load query into SQL editor
+            document.getElementById("sql-editor").value = sql;
+            // Switch to SQL Console tab and execute
+            switchTab("sql-console");
+            runSQLQuery(sql, notebook);
+        });
+    });
 }
 
 // 3. SQL QUERY CONSOLE
@@ -819,6 +1106,12 @@ async function runNLPAnalysis(fileKey) {
         // Render Charts
         renderNLPCharts(data);
 
+        // Reveal CSV download button (Cell 11 equivalent)
+        const exportNlpBtn = document.getElementById("btn-export-nlp-csv");
+        exportNlpBtn.classList.remove("hidden");
+        // Store current file key on button so download targets the right dataset
+        exportNlpBtn.dataset.fileKey = fileKey;
+
     } catch (err) {
         console.error(err);
     } finally {
@@ -827,6 +1120,19 @@ async function runNLPAnalysis(fileKey) {
         lucide.createIcons();
     }
 }
+
+// NLP CSV Export — equivalent to Cell 11: word_counts.write.format('csv').save(path)
+document.getElementById("btn-export-nlp-csv").addEventListener("click", () => {
+    const fileKey = document.getElementById("btn-export-nlp-csv").dataset.fileKey
+        || document.getElementById("nlp-file-select").value;
+    // Trigger download via anchor pointing at the streaming CSV endpoint
+    const link = document.createElement("a");
+    link.href = `/api/export_nlp_csv?file=${fileKey}`;
+    link.download = "";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
 
 function renderNLPCharts(data) {
     // 1. Word frequency Chart

@@ -319,10 +319,16 @@
                                     <option value="sejong_wikipedia">Sejong Wikipedia (sejong_university_wikipedia.txt)</option>
                                 </select>
                             </div>
-                            <button class="btn btn-primary" id="btn-run-nlp">
-                                <i data-lucide="play-circle"></i>
-                                <span>Run NLP Processing</span>
-                            </button>
+                            <div class="nlp-control-actions">
+                                <button class="btn btn-primary" id="btn-run-nlp">
+                                    <i data-lucide="play-circle"></i>
+                                    <span>Run NLP Processing</span>
+                                </button>
+                                <button class="btn btn-outline hidden" id="btn-export-nlp-csv" title="Equivalent to Cell 11: word_counts.write.format('csv').save(...)">
+                                    <i data-lucide="download"></i>
+                                    <span>Save Results as CSV</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
